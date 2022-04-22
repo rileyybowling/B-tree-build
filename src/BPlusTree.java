@@ -66,7 +66,12 @@ public class BPlusTree {
      */
  
     public void insert(int key) {
-
+        if (insertHelper(key, root)){
+            Node newRoot = new Node(Type.INDEX);
+            newRoot.children.add(0, root);
+            splitChild(root, newRoot);
+            root = newRoot;
+        }
     }
     /* YOUR CODE HERE
     *   This is a helper method to the insert. It will be a recursive method going down each index node until it can add
@@ -83,8 +88,27 @@ public class BPlusTree {
     *
     * */
     private boolean insertHelper(int key, Node node){
-        //TODO
-        return false;
+        if (node.isLeaf){
+            node.keys.add(0, key);
+            node.keys.sort(null);
+            if (node.keys.size() > (order-1)){
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            Node keyChild = getKeyChild(key, node);
+            if (insertHelper(key, keyChild)){
+                splitChild(keyChild, node);
+                if (node.keys.size() > (order-1)){
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
     }
     private Node getKeyChild(int key, Node parent){
         return parent.children.get(getFirstIndexGreaterThanKey(parent,key));
@@ -99,40 +123,60 @@ public class BPlusTree {
     *
     * */
     private int getFirstIndexGreaterThanKey(Node node,int key){
-        //TODO
-		return -1;
+        int index = 0;
+        for (int i=0; i<node.keys.size(); i++){
+            if (node.keys.get(i) > key){
+                index = i;
+                break;
+            }
+        }
+        return index;
     }
     /*YOUR CODE HERE
     * This is perhaps the most difficult method of this lab, so we have given you a pretty detailed layout of how to do it. Feel free to come to helpdesk if you have questions.
     * NOTE: if you don't want to follow our framework please do not feel like you have to.
     * */
     private void splitChild(Node child, Node parent) {
+        int i = child.keys.size()/2;
         if (child.isLeaf) { //Splitting Leaf node
 			
 			//split is going to hold the upper half of child's  nodes
             Node split = new Node(Type.LEAF);
             
 			//TODO: remove the last half of the keys on child and add them to split(hint: remember that this is full so size(child.keys) > order - 1))
-            
+            while (child.keys.get(i+1) != null){
+                split.keys.add(child.keys.get(i));
+                child.keys.remove(i);
+            }
+            split.keys.add(child.keys.get(i));
+            child.keys.remove(i);
 			//TODO get the index where split node needs to be added to parent's children (hint: getFirstIndexGreaterThenKey)
-            
+            int firstIndex = getFirstIndexGreaterThanKey(child, split.keys.get(0));
 			//TODO add first key in split node to parent keys at index
-            
+            parent.keys.add(firstIndex, split.keys.get(0));
 			//TODO add split node to children of parent at index +1
+            parent.children.add(firstIndex+1, split);
         } else { //Splitting Index Node
 
             Node split = new Node(Type.INDEX);
             //TODO get removedkey from child keys at size/2, this is the middle key of the index node so we push it up opposed to copying it up like in a leaf split
-			
+			int removedKey = child.keys.get(child.keys.size()/2);
 			//TODO removed last half of keys and children of child node and add them to split node
-            
+            while (child.keys.get(i+1) != null){
+                split.keys.add(child.keys.get(i));
+                child.keys.remove(i);
+            }
+            split.keys.add(child.keys.get(i));
+            child.keys.remove(i);
 			// TODO take the pointer of the last child in the 'child' node and move it to the children of the split node(to clarify: this should remove the last child and add it to split)
-			
+			split.children.add(child.children.get(child.children.size()-1));
+            child.children.remove(child.children.get(child.children.size()-1));
 			//TODO get index where the split node to be added to parent(hint: getFirstIndexGreaterThanKey)
-            
+            int index = getFirstIndexGreaterThanKey(parent, removedKey);
 			//TODO add  removed key to parent keys at index
-            
+            parent.keys.add(index, removedKey);
 			//TODO add split node to children of parent at index +1
+            parent.children.add(index+1, split);
 		}
 	}
 
